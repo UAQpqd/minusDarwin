@@ -73,7 +73,7 @@ namespace MinusDarwinTest {
                     0.0005f, 0.7f, 0.7f
             };
             solver = new MinusDarwin::Solver(
-                    solverParameterSet, fitError
+                    solverParameterSet, fitError, bc::system::default_device()
             );
         }
         void TearDown() override {

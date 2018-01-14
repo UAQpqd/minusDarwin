@@ -44,9 +44,11 @@ namespace MinusDarwin {
         void createNeighbours(Neighbours &n, const size_t bestAgentId);
         bool useOpenCL();
         void showPopulationHead(const Population &p, const std::vector<float> &s, size_t n);
-        bc::device device;
         SolverParameterSet sParams;
         std::function<float (Agent)> scoreFunction;
+        bc::device device;
+        bc::context ctx;
+        bc::command_queue queue;
         RunTracer tracer;
         //private:
     };
