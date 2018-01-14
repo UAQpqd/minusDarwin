@@ -7,20 +7,23 @@
 
 #include <gtest/gtest.h>
 #include "Solver.hpp"
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics.hpp>
 
+namespace ba = boost::accumulators;
 
 namespace MinusDarwinTest {
     class SolverWithSumFunction : public ::testing::Test {
     public:
-        MinusDarwin::Solver<float, float> *solver;
+        MinusDarwin::Solver *solver;
         void SetUp() override {
-            std::function<float (float,float)> sum = [](float a,float b) { return a+b; };
+            std::function<float (std::vector<float>)> sum = [](std::vector<float> v) { return v.at(0)+v.at(1); };
             MinusDarwin::SolverParameterSet solverParameterSet = {
-                    10,4,MinusDarwin::GoalFunction::EpsilonReached,
+                    2,20,4,MinusDarwin::GoalFunction::EpsilonReached,
                     MinusDarwin::CrossoverMode::Best,1,
                     0.05f,0.7f,0.7f
             };
-            solver = new MinusDarwin::Solver<float,float>(
+            solver = new MinusDarwin::Solver(
                     solverParameterSet,sum
             );
         }
