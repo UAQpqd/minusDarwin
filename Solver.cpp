@@ -42,12 +42,22 @@ MinusDarwin::Agent MinusDarwin::Solver::run(bool verbose) {
     initPopulation(X);
     evaluatePopulation(Xscores,X);
     bool goalReached = checkEpsilonReached(Xscores);
+    if(verbose)
+        showPopulationHead(X,Xscores,10);
     for(size_t g = 0; g<sParams.maxGens && !goalReached; g++) {
         crossoverPopulation(X,Y,sParams.mode==CrossoverMode::Best?getBestAgentId(Xscores):0);
-        selectionPopulation(X,Y);
+        evaluatePopulation(Yscores,Y);
+        selectionPopulation(X,Xscores,Y,Yscores);
         goalReached = checkEpsilonReached(Xscores);
+        if(verbose)
+            showPopulationHead(X,Xscores,10);
     }
-    return X.at(getBestAgentId(Xscores));
+    size_t bestAgentId = getBestAgentId(Xscores);
+    if(verbose) {
+        std::cout << "Best Agent: " << X.at(bestAgentId)
+                  << " " << Xscores.at(bestAgentId) << std::endl;
+    }
+    return X.at(bestAgentId);
 }
 
 size_t MinusDarwin::Solver::getBestAgentId(const std::vector<float> &scores) {
@@ -106,9 +116,6 @@ void MinusDarwin::Solver::crossoverPopulation(const MinusDarwin::Population &src
     }
 }
 
-void MinusDarwin::Solver::selectionPopulation(const MinusDarwin::Population &a, const MinusDarwin::Population &b) {
-
-}
 
 void MinusDarwin::Solver::createNeighbours(MinusDarwin::Neighbours &n, const size_t bestAgentId) {
     std::random_device rd;
@@ -129,6 +136,24 @@ void MinusDarwin::Solver::createNeighbours(MinusDarwin::Neighbours &n, const siz
                     a.begin()+p);
             a.at(p) = selected;
         }
+    }
+}
+
+void MinusDarwin::Solver::selectionPopulation(MinusDarwin::Population &main, std::vector<float> &mainScores,
+                                              const MinusDarwin::Population &other, std::vector<float> &otherScores) {
+    for(size_t a = 0; a<sParams.popSize; a++) {
+        if(otherScores.at(a)<mainScores.at(a)) {
+            mainScores.at(a) = otherScores.at(a);
+            main.at(a) = other.at(a);
+        }
+    }
+}
+
+void MinusDarwin::Solver::showPopulationHead(const MinusDarwin::Population &p, const std::vector<float> &s, size_t n) {
+    for(size_t a = 0; a<n;a++) {
+        std::cout << "Agent: ";
+        std::cout << p.at(a);
+        std::cout << " " << s.at(a) << std::endl;
     }
 }
 

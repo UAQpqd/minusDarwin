@@ -23,5 +23,8 @@ namespace MinusDarwinTest {
             ASSERT_EQ(a.size(),kNeighsPerAgent(solver->sParams.modeDepth));
         }
     }
-
+    TEST_F(SolverWithSinewaveFitFunction, TestFitting) {
+        MinusDarwin::Agent result = solver->run(false);
+        ASSERT_LE(solver->evaluateAgent(result),0.0005f);
+    }
 }

@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <cstddef>
+#include <iostream>
 
 
 namespace MinusDarwin {
@@ -27,4 +28,6 @@ namespace MinusDarwin {
         float diffFactor;     //Diferential factor
     };
 }
+
+std::ostream &operator<<(std::ostream &os, const MinusDarwin::Agent &a);
 #endif //MINUSDARWIN_UTILITY_HPP

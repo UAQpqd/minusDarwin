@@ -11,14 +11,12 @@
 #include <random>
 #include <vector>
 #include <boost/compute.hpp>
-#include <boost/fusion/tuple.hpp>
-#include <boost/fusion/algorithm.hpp>
-#include <boost/fusion/include/for_each.hpp>
 #include "RunTracer.hpp"
 #include "Utility.hpp"
 #include <iterator>
+#include <iostream>
 
-#define kNeighsPerAgent(depth) 1+2*depth
+#define kNeighsPerAgent(depth) (1+2*(depth))
 
 namespace bc = boost::compute;
 
@@ -41,9 +39,11 @@ namespace MinusDarwin {
         size_t getBestAgentId(const std::vector<float> &scores);
         bool checkEpsilonReached(const std::vector<float> &scores);
         void crossoverPopulation(const Population &src, Population &dst, const size_t bestAgentId);
-        void selectionPopulation(const Population &a, const Population &b);
+        void selectionPopulation(Population &main, std::vector<float> &mainScores,
+                                 const Population &other, std::vector<float> &otherScores);
         void createNeighbours(Neighbours &n, const size_t bestAgentId);
         bool useOpenCL();
+        void showPopulationHead(const Population &p, const std::vector<float> &s, size_t n);
         bc::device device;
         SolverParameterSet sParams;
         std::function<float (Agent)> scoreFunction;

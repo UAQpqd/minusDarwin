@@ -4,7 +4,7 @@ project(MinusDarwin)
 set(CMAKE_CXX_STANDARD 17)
 find_package(OpenCL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS chrono)
-add_library(MinusDarwin Solver.cpp Solver.hpp RunTracer.cpp RunTracer.hpp Utility.hpp)
+add_library(MinusDarwin Solver.cpp Solver.hpp RunTracer.cpp RunTracer.hpp Utility.hpp Utility.cpp)
 target_include_directories(MinusDarwin PUBLIC ${OpenCL_INCLUDE_DIR})
 target_link_libraries(MinusDarwin OpenCL::OpenCL Boost::chrono)
 
