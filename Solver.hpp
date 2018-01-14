@@ -18,7 +18,7 @@
 #include "Utility.hpp"
 #include <iterator>
 
-#define kNeighsPerAgent 1+2*sParams.modeDepth
+#define kNeighsPerAgent(depth) 1+2*depth
 
 namespace bc = boost::compute;
 

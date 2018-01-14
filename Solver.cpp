@@ -65,10 +65,45 @@ bool MinusDarwin::Solver::checkEpsilonReached(const std::vector<float> &scores) 
     return false;
 }
 
-void MinusDarwin::Solver::crossoverPopulation(const MinusDarwin::Population &src, MinusDarwin::Population &dst, const size_t bestAgentId) {
-    auto neighbours = Neighbours(sParams.popSize, std::vector<size_t>(kNeighsPerAgent,0));
+void MinusDarwin::Solver::crossoverPopulation(const MinusDarwin::Population &src, MinusDarwin::Population &dst,
+                                              const size_t bestAgentId) {
+    auto neighbours = Neighbours(sParams.popSize, std::vector<size_t>(kNeighsPerAgent(sParams.modeDepth),0));
     createNeighbours(neighbours,bestAgentId);
-
+    std::vector<float> coProbs(
+            sParams.popSize*kNeighsPerAgent(sParams.modeDepth),0.0f);
+    std::vector<float> deltas(sParams.popSize);
+    std::random_device rd;
+    std::default_random_engine re(rd());
+    std::uniform_real_distribution<float> urd(0.0f,1.0f);
+    std::uniform_int_distribution<size_t> uid(0,sParams.dims-1);
+    std::generate(coProbs.begin(),coProbs.end(),[&urd,&re] () { return urd(re); });
+    std::generate(deltas.begin(),deltas.end(),[&uid,&re] () { return uid(re); });
+    for(size_t agentId = 0; agentId < sParams.popSize; agentId++) {
+        auto &agentSrc = src.at(agentId);
+        auto &agentDst = dst.at(agentId);
+        auto &agentNgbs = neighbours.at(agentId);
+        auto agentCoProbs = std::vector<float>(
+                coProbs.begin()+agentId*kNeighsPerAgent(sParams.modeDepth),
+                coProbs.begin()+(agentId+1)*kNeighsPerAgent(sParams.modeDepth)
+        );
+        const size_t delta = deltas.at(agentId);
+        for(size_t paramId = 0; paramId < sParams.dims; paramId++) {
+            if(agentCoProbs.at(paramId)<sParams.coProb && delta != paramId) {
+                float newParam = src.at(agentNgbs.at(0)).at(paramId);
+                for(size_t n = 1;n<kNeighsPerAgent(sParams.modeDepth);n++) {
+                    if(n%2==1)
+                        newParam += sParams.diffFactor*src.at(agentNgbs.at(n)).at(paramId);
+                    else
+                        newParam -= sParams.diffFactor*src.at(agentNgbs.at(n)).at(paramId);
+                }
+                newParam = std::min(1.0f,std::max(0.0f,newParam));
+                agentDst.at(paramId) = newParam;
+            }
+            else {
+                agentDst.at(paramId) = agentSrc.at(paramId);
+            }
+        }
+    }
 }
 
 void MinusDarwin::Solver::selectionPopulation(const MinusDarwin::Population &a, const MinusDarwin::Population &b) {
@@ -85,7 +120,7 @@ void MinusDarwin::Solver::createNeighbours(MinusDarwin::Neighbours &n, const siz
         if(sParams.mode==CrossoverMode::Best) {
             a.at(p++) = bestAgentId;
         }
-        for(;p<kNeighsPerAgent;p++) {
+        for(;p<kNeighsPerAgent(sParams.modeDepth);p++) {
             size_t selected;
             do {
                 selected = uid(re);

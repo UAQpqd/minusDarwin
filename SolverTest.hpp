@@ -7,10 +7,6 @@
 
 #include <gtest/gtest.h>
 #include "Solver.hpp"
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics.hpp>
-
-namespace ba = boost::accumulators;
 
 namespace MinusDarwinTest {
     class SolverWithSumFunction : public ::testing::Test {
