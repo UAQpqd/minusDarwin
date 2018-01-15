@@ -11,8 +11,14 @@ MinusDarwin::Solver::Solver(const MinusDarwin::SolverParameterSet &t_sParams,
         scoreFunction(t_scoreFunction), sParams(t_sParams) {
 }
 
-void MinusDarwin::Solver::evaluatePopulation(std::vector<float> &scores, MinusDarwin::Population &p) {
-        std::transform(p.begin(), p.end(), scores.begin(), [this](const Agent &a) { return evaluateAgent(a); });
+void MinusDarwin::Solver::evaluatePopulation(Scores &scores, Population &p) {
+    std::transform(p.begin(), p.end(), scores.begin(), [this](const Agent &a) { return evaluateAgent(a); });
+}
+void MinusDarwin::Solver::evaluatePopulation(DScores &scores, DPopulation &p) {
+    scoreFunctionKernel.set_args(
+            p,p.size(),sParams.dims,dData,dData.size()
+    );
+    queue.enqueue_1d_range_kernel(scoreFunctionKernel,0,sParams.popSize,0);
 }
 
 float MinusDarwin::Solver::evaluateAgent(const MinusDarwin::Agent &a) {
@@ -23,41 +29,71 @@ void MinusDarwin::Solver::initPopulation(MinusDarwin::Population &p) {
     std::random_device rd;
     std::default_random_engine re(rd());
     std::uniform_real_distribution<float> urd(0.0f, 1.0f);
-    for (auto &a : p) for (auto &v : a) v = urd(re);
+    for (auto &v : p) v = urd(re);
 }
 
 MinusDarwin::Agent MinusDarwin::Solver::run(bool verbose) {
-    Population X(sParams.popSize, std::vector<float>(sParams.dims, 0.0f));
-    Population Y(sParams.popSize, std::vector<float>(sParams.dims, 0.0f));
+    Population X(sParams.popSize*sParams.dims, 0.0f);
     std::vector<float> Xscores(sParams.popSize);
-    std::vector<float> Yscores(sParams.popSize);
     initPopulation(X);
-    evaluatePopulation(Xscores, X);
-    bool goalReached = checkEpsilonReached(Xscores);
-    if (verbose)
-        showPopulationHead(X, Xscores, 10);
-    for (size_t g = 0; g < sParams.maxGens && !goalReached; g++) {
-        crossoverPopulation(X, Y, sParams.mode == CrossoverMode::Best ? getBestAgentId(Xscores) : 0);
-        evaluatePopulation(Yscores, Y);
-        selectionPopulation(X, Xscores, Y, Yscores);
-        goalReached = checkEpsilonReached(Xscores);
+    const bool ocl = device.id()==0;
+    if(ocl) {
+        Population Y(sParams.popSize*sParams.dims, 0.0f);
+        std::vector<float> Yscores(sParams.popSize);
+
+        evaluatePopulation(Xscores, X);
+        size_t bestAgentId = getBestAgentId(Xscores);
+        bool goalReached = checkEpsilonReached(Xscores,bestAgentId);
         if (verbose)
             showPopulationHead(X, Xscores, 10);
+        for (size_t g = 0; g < sParams.maxGens && !goalReached; g++) {
+            crossoverPopulation(X, Y, sParams.mode == CrossoverMode::Best ? getBestAgentId(Xscores) : 0);
+            evaluatePopulation(Yscores, Y);
+            selectionPopulation(X, Xscores, Y, Yscores);
+            goalReached = checkEpsilonReached(Xscores);
+            if (verbose)
+                showPopulationHead(X, Xscores, 10);
+        }
+        size_t bestAgentId = getBestAgentId(Xscores);
+        if (verbose) {
+            std::cout << "Best Agent: " << X.at(bestAgentId)
+                      << " " << Xscores.at(bestAgentId) << std::endl;
+        }
     }
-    size_t bestAgentId = getBestAgentId(Xscores);
-    if (verbose) {
-        std::cout << "Best Agent: " << X.at(bestAgentId)
-                  << " " << Xscores.at(bestAgentId) << std::endl;
+    else {
+        DPopulation dX(X.begin(),X.end(),queue);
+        DScores dXscores(sParams.popSize,ctx);
+        evaluatePopulation(dXscores, dX);
+        size_t bestAgentId = getBestAgentId(dXscores);
+        bool goalReached = checkEpsilonReached(dXscores,bestAgentId);
+        if (verbose)
+            showPopulationHead(dX, dXscores, 10);
+        //TODO
     }
+
     return X.at(bestAgentId);
 }
 
-size_t MinusDarwin::Solver::getBestAgentId(const std::vector<float> &scores) {
-    return std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()));
+size_t MinusDarwin::Solver::getBestAgentId(const Scores &scores) {
+    return (size_t)std::distance(
+            scores.begin(),
+            std::min_element(scores.begin(), scores.end()));
+}
+
+size_t MinusDarwin::Solver::getBestAgentId(const DScores &scores) {
+    auto minIt = bc::min_element(scores.begin(),scores.end(),queue);
+    return minIt.get_index();
 }
 
 
-bool MinusDarwin::Solver::checkEpsilonReached(const std::vector<float> &scores) {
+bool MinusDarwin::Solver::checkEpsilonReached(const Scores &scores, const size_t bestAgentId) {
+    if (sParams.goal == GoalFunction::EpsilonReached) {
+        return scores.at(getBestAgentId(scores)) < sParams.epsilon;
+    }
+    return false;
+}
+
+bool MinusDarwin::Solver::checkEpsilonReached(const DScores &scores, const size_t bestAgentId) {
     if (sParams.goal == GoalFunction::EpsilonReached) {
         return scores.at(getBestAgentId(scores)) < sParams.epsilon;
     }
@@ -66,7 +102,7 @@ bool MinusDarwin::Solver::checkEpsilonReached(const std::vector<float> &scores) 
 
 void MinusDarwin::Solver::crossoverPopulation(const MinusDarwin::Population &src, MinusDarwin::Population &dst,
                                               const size_t bestAgentId) {
-    auto neighbours = Neighbours(sParams.popSize, std::vector<size_t>(kNeighsPerAgent(sParams.modeDepth), 0));
+    auto neighbours = Neighbours(sParams.popSize*kNeighsPerAgent(sParams.modeDepth), 0);
     createNeighbours(neighbours, bestAgentId);
     std::vector<float> coProbs(
             sParams.popSize * kNeighsPerAgent(sParams.modeDepth), 0.0f);
@@ -137,11 +173,39 @@ void MinusDarwin::Solver::selectionPopulation(MinusDarwin::Population &main, std
     }
 }
 
-void MinusDarwin::Solver::showPopulationHead(const MinusDarwin::Population &p, const std::vector<float> &s, size_t n) {
+void MinusDarwin::Solver::showPopulationHead(const Population &p, const Scores &s, size_t n) {
     for (size_t a = 0; a < n; a++) {
-        std::cout << "Agent: ";
-        std::cout << p.at(a);
-        std::cout << " " << s.at(a) << std::endl;
+        std::cout << "Agent: [";
+        std::cout << agentCSV(p,a);
+        std::cout << "] " << s.at(a) << std::endl;
     }
+}
+void MinusDarwin::Solver::showPopulationHead(const DPopulation &p, const DScores &s, size_t n) {
+    Scores hostPopulation(sParams.popSize*sParams.dims);
+    bc::copy(p.begin(),p.end(),hostPopulation.begin(),queue);
+    Scores hostScores(sParams.popSize);
+    bc::copy(s.begin(),s.end(),hostScores.begin(),queue);
+    showPopulationHead(hostPopulation,hostScores,10);
+}
+
+MinusDarwin::Solver::Solver(const MinusDarwin::SolverParameterSet &t_sParams,
+                            const std::string t_scoreFunctionKernelString, const std::vector<float> *t_data,
+                            bc::device t_device) :
+sParams(t_sParams), device(t_device) {
+    ctx = bc::context(device);
+    queue = bc::command_queue(ctx,device);
+    bc::program program = bc::program::build_with_source(t_scoreFunctionKernelString,ctx);
+    scoreFunctionKernel = program.create_kernel("scoreFunctionKernel");
+    dData = bc::vector<float>(t_data->begin(),t_data->end(),queue);
+}
+
+
+std::string MinusDarwin::Solver::agentCSV(const MinusDarwin::Population &p, const size_t &agentId) {
+    std::stringstream ss;
+    for(size_t paramId=0;paramId<sParams.dims;paramId++) {
+        ss << p.at(dimShrink(sParams.dims,agentId,paramId));
+        if(paramId != sParams.dims-1) ss << ",";
+    }
+    return ss.str();
 }
 

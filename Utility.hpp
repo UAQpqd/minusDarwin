@@ -8,12 +8,23 @@
 #include <vector>
 #include <cstddef>
 #include <iostream>
+#include <boost/compute.hpp>
 
+namespace bc = boost::compute;
+
+#define dimShrink(w,r,c) (\
+    (r)*(w)+(c)\
+)
 
 namespace MinusDarwin {
     typedef std::vector<float> Agent;
-    typedef std::vector<Agent> Population;
-    typedef std::vector<std::vector<size_t> > Neighbours;
+    typedef std::vector<float> Scores;
+    typedef std::vector<float> Population;
+    typedef std::vector<size_t> Neighbours;
+    typedef bc::vector<float> DAgent;
+    typedef bc::vector<float> DScores;
+    typedef bc::vector<float> DPopulation;
+    typedef bc::vector<size_t> DNeighbours;
     enum class GoalFunction { MaxGenerations, EpsilonReached };
     enum class CrossoverMode { Random, Best };
     struct SolverParameterSet {
