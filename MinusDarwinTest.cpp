@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-//Sinewave parallel
+//Sinewave parallel fitter
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

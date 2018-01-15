@@ -14,14 +14,15 @@ namespace MinusDarwinTest {
         MinusDarwin::Solver *solver;
 
         void SetUp() override {
-            std::function<float(std::vector<float>)> sum = [](std::vector<float> v) { return v.at(0) + v.at(1); };
+
             MinusDarwin::SolverParameterSet solverParameterSet = {
                     2, 20, 4, MinusDarwin::GoalFunction::EpsilonReached,
                     MinusDarwin::CrossoverMode::Best, 1,
                     0.05f, 0.7f, 0.7f
             };
+            //TODO: String
             solver = new MinusDarwin::Solver(
-                    solverParameterSet, sum
+                    solverParameterSet, "", bc::system::default_device()
             );
         }
 
@@ -29,7 +30,7 @@ namespace MinusDarwinTest {
             delete solver;
         }
     };
-
+/*
     class SolverWithSinewaveFitFunction : public ::testing::Test {
     public:
         MinusDarwin::Solver *solver;
@@ -53,33 +54,21 @@ namespace MinusDarwinTest {
             const float sumOfSquares = std::accumulate(
                     signalData.begin(),signalData.end(),0.0f,
                     [](float accum, float val) { return accum+val*val; });
-            std::function<float(std::vector<float>)> fitError =
-                    [signalData, sumOfSquares, sps, a,
-                            omegaMin, omegaMax, phiMax](std::vector<float> v) -> float {
-                        float error = 0.0f;
-                        for (size_t p = 0; p < signalData.size(); p++) {
-                            float t = (float)p/(float)sps;
-                            float realOmega = omegaMin+v.at(0)*(omegaMax-omegaMin);
-                            float realPhi = v.at(1)*phiMax;
-                            float estimated =
-                                    a*sin(realOmega*t+realPhi);
-                            error += pow(estimated-signalData.at(p),2.0f);
-                        }
-                        return error/sumOfSquares;
-                    };
             MinusDarwin::SolverParameterSet solverParameterSet = {
                     2, 1200, 20, MinusDarwin::GoalFunction::EpsilonReached,
                     MinusDarwin::CrossoverMode::Best, 1,
                     0.0005f, 0.7f, 0.7f
             };
+            //TODO: String
             solver = new MinusDarwin::Solver(
-                    solverParameterSet, fitError
+                    solverParameterSet, "", bc::system::default_device()
             );
         }
         void TearDown() override {
             delete solver;
         }
     };
+    */
 }
 
 #endif //MINUSDARWIN_SOLVERTEST_HPP
