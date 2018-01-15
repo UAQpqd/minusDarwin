@@ -6,9 +6,6 @@
 
 
 namespace MinusDarwinTest {
-    TEST_F(SolverWithSumFunction, TestNoOpenCL) {
-        ASSERT_FALSE(solver->useOpenCL());
-    }
     TEST_F(SolverWithSumFunction, TestScoreFunction) {
         ASSERT_FLOAT_EQ(solver->evaluateAgent({2.0f, 3.0f}), 5.0f);
     }
@@ -25,9 +22,6 @@ namespace MinusDarwinTest {
             std::unique(a.begin(),a.end());
             ASSERT_EQ(a.size(),kNeighsPerAgent(solver->sParams.modeDepth));
         }
-    }
-    TEST_F(SolverWithSinewaveFitFunction, TestOpenCL) {
-        ASSERT_TRUE(solver->useOpenCL());
     }
     TEST_F(SolverWithSinewaveFitFunction, TestFitting) {
         MinusDarwin::Agent result = solver->run(false);

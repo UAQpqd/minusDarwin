@@ -10,7 +10,7 @@
 #include <utility>
 #include <random>
 #include <vector>
-#include <boost/compute.hpp>
+#include <algorithm>
 #include "RunTracer.hpp"
 #include "Utility.hpp"
 #include <iterator>
@@ -18,7 +18,6 @@
 
 #define kNeighsPerAgent(depth) (1+2*(depth))
 
-namespace bc = boost::compute;
 
 namespace MinusDarwin {
 
@@ -26,9 +25,6 @@ namespace MinusDarwin {
     public:
         Solver(const SolverParameterSet &t_sParams,
                const std::function<float (Agent)> &t_scoreFunction);
-        Solver(const SolverParameterSet &t_sParams,
-               const std::function<float (Agent)> &t_scoreFunction,
-               const bc::device &t_device);
         ~Solver() = default;
         Agent run(bool verbose);
         void evaluatePopulation(
@@ -46,9 +42,6 @@ namespace MinusDarwin {
         void showPopulationHead(const Population &p, const std::vector<float> &s, size_t n);
         SolverParameterSet sParams;
         std::function<float (Agent)> scoreFunction;
-        bc::device device;
-        bc::context ctx;
-        bc::command_queue queue;
         RunTracer tracer;
         //private:
     };

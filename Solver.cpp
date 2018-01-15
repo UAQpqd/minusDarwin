@@ -6,20 +6,9 @@
 
 
 MinusDarwin::Solver::Solver(const MinusDarwin::SolverParameterSet &t_sParams,
-                            const std::function<float(Agent)> &t_scoreFunction) :
-        Solver(t_sParams, t_scoreFunction, bc::device()) {
-
-}
-
-MinusDarwin::Solver::Solver(const MinusDarwin::SolverParameterSet &t_sParams,
-                            const std::function<float(Agent)> &t_scoreFunction, const bc::device &t_device
+                            const std::function<float(Agent)> &t_scoreFunction
 ) :
-        scoreFunction(t_scoreFunction), sParams(t_sParams),
-        device(t_device) {
-    if(useOpenCL()) {
-        ctx = bc::context(device);
-        queue = bc::command_queue(ctx,device);
-    }
+        scoreFunction(t_scoreFunction), sParams(t_sParams) {
 }
 
 void MinusDarwin::Solver::evaluatePopulation(std::vector<float> &scores, MinusDarwin::Population &p) {
@@ -67,9 +56,6 @@ size_t MinusDarwin::Solver::getBestAgentId(const std::vector<float> &scores) {
     return std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()));
 }
 
-bool MinusDarwin::Solver::useOpenCL() {
-    return device.id() != 0;
-}
 
 bool MinusDarwin::Solver::checkEpsilonReached(const std::vector<float> &scores) {
     if (sParams.goal == GoalFunction::EpsilonReached) {
