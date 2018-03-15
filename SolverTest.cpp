@@ -4,11 +4,7 @@
 
 #include "SolverTest.hpp"
 
-
 namespace MinusDarwinTest {
-    TEST_F(SolverWithSumFunction, TestScoreFunction) {
-        ASSERT_FLOAT_EQ(solver->evaluateAgent({2.0f, 3.0f}), 5.0f);
-    }
 
     TEST_F(SolverWithSumFunction, TestNeighbourCreation) {
         auto neighbours =
@@ -23,8 +19,18 @@ namespace MinusDarwinTest {
             ASSERT_EQ(a.size(),kNeighsPerAgent(solver->sParams.modeDepth));
         }
     }
+    TEST_F(SolverWithSumFunction, TestFitting) {
+        auto bestAgent = solver->run(false);
+        GTEST_ASSERT_LE(bestAgent.at(0)+bestAgent.at(1), 0.05f);
+    }
     TEST_F(SolverWithSinewaveFitFunction, TestFitting) {
-        MinusDarwin::Agent result = solver->run(false);
-        ASSERT_LE(solver->evaluateAgent(result),0.0005f);
+        auto bestAgent = solver->run(true);
+        auto bestAgentScore = solver->tracer.bestAgentScore;
+        GTEST_ASSERT_LE(bestAgentScore, 0.005f);
+    }
+    TEST_F(SolverWithSinewaveFitFunctionOpenCL, TestFitting) {
+        auto bestAgent = solver->run(true);
+        auto bestAgentScore = solver->tracer.bestAgentScore;
+        GTEST_ASSERT_LE(bestAgentScore, 0.005f);
     }
 }

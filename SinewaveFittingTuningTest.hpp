@@ -1,111 +1,42 @@
 //
-// Created by dev on 1/13/2018.
+// Created by dev on 3/15/2018.
 //
 
-#ifndef MINUSDARWIN_SOLVERTEST_HPP
-#define MINUSDARWIN_SOLVERTEST_HPP
+#ifndef MINUSDARWIN_SINEWAVEFITTINGTUNINGTEST_HPP
+#define MINUSDARWIN_SINEWAVEFITTINGTUNINGTEST_HPP
+
 
 #include <gtest/gtest.h>
 #include <boost/compute.hpp>
 #include "Solver.hpp"
 
 namespace bc = boost::compute;
-MinusDarwin::SolverParameterSet solverParameterSetSinewaveFitting1 = {
-        2, 200, 100, MinusDarwin::GoalFunction::EpsilonReached,
-        MinusDarwin::CrossoverMode::Best, 1,
-        0.0005f, 0.7f, 0.8f, false
+MinusDarwin::SolverParameterSet solverParameterSetSinewaveFittingTuning = {
+        2, 200, 100, MinusDarwin::GoalFunction::MaxGenerations,
+        MinusDarwin::CrossoverMode::Random, 1,
+        0.005f, 0.7f, 0.8f, true
 };
+
 namespace MinusDarwinTest {
-    class SolverWithSumFunction : public ::testing::Test {
+    class SinewaveFittingTuningTest : public ::testing::Test {
     public:
         MinusDarwin::Solver *solver;
-
-        void SetUp() override {
-            auto evaluatePopulationSum =
-                    [](MinusDarwin::Scores &scores,
-                    const MinusDarwin::Population &population) {
-                        for (size_t aId = 0; aId < population.size(); ++aId) {
-                            auto &agent = population.at(aId);
-                            scores.at(aId) = agent.at(0) + agent.at(1);
-                        }
-                    };
-            MinusDarwin::SolverParameterSet solverParameterSet = {
-                    2, 20, 4, MinusDarwin::GoalFunction::EpsilonReached,
-                    MinusDarwin::CrossoverMode::Best, 1,
-                    0.05f, 0.7f, 0.7f, false
-            };
-            solver = new MinusDarwin::Solver(
-                    solverParameterSet, evaluatePopulationSum
-            );
-        }
-
-        void TearDown() override {
-            delete solver;
-        }
-    };
-
-    class SolverWithSinewaveFitFunction : public ::testing::Test {
-    public:
-        MinusDarwin::Solver *solver;
-
-        void SetUp() override {
-
-            const float time = 10.0f;
-            const size_t sps = 8000;
-            const float a = 100.0f;
-            const float omega = 2.0f * (float) M_PI * 60.0f;
-            const float omegaMin = omega * 0.95f;
-            const float omegaMax = omega * 1.05f;
-            const float phiMax = 2.0f * (float) M_PI;
-            const float phi = 0.0f;
-            std::vector<float> signalData(
-                    (size_t) floor((float) sps * time), 0.0f);
-            for (size_t p = 0; p < signalData.size(); p++) {
-                float t = (float) p / (float) sps;
-                signalData.at(p) =
-                        a * sin(omega * t + phi);
-            }
-            const float sumOfSquares = std::accumulate(
-                    signalData.begin(),signalData.end(),0.0f,
-                    [](float accum, float val) { return accum+val*val; });
-            auto evaluatePopulationFitError =
-                    [signalData, sumOfSquares, sps, a,
-                            omegaMin, omegaMax, phiMax](
-                            MinusDarwin::Scores &scores,
-                            const MinusDarwin::Population &population) {
-                        for (size_t aId = 0; aId < population.size(); ++aId) {
-                            auto &agent = population.at(aId);
-                            float error = 0.0f;
-                            for (size_t p = 0; p < signalData.size(); p++) {
-                                float t = (float)p/(float)sps;
-                                float realOmega = omegaMin+agent.at(0)*(omegaMax-omegaMin);
-                                float realPhi = agent.at(1)*phiMax;
-                                float estimated =
-                                        a*sin(realOmega*t+realPhi);
-                                error += pow(estimated-signalData.at(p),2.0f);
-                            }
-                            scores.at(aId) = error/sumOfSquares;
-                        }
-                    };
-            solver = new MinusDarwin::Solver(
-                    solverParameterSetSinewaveFitting1, evaluatePopulationFitError
-            );
-        }
-        void TearDown() override {
-            delete solver;
-        }
-    };
-
-
-    class SolverWithSinewaveFitFunctionOpenCL : public ::testing::Test {
-    public:
-        MinusDarwin::Solver *solver;
+        std::ofstream csv;
+        const std::string csvFilename = "SinewaveFittingTuningTest.csv";
         BOOST_COMPUTE_FUNCTION(float,accumSquared,(float accum,float val), {
             return accum + val*val;
         });
 
-
+        void runFittingTest(
+                size_t popSize,
+        size_t maxGens,
+        MinusDarwin::CrossoverMode mode,
+        size_t modeDepth,
+        float coProb,
+        float diffFactor,
+        bool useUniformFactor);
         void SetUp() override {
+            csv.open(csvFilename);
             const char sinewaveFitSource[] =
                     BOOST_COMPUTE_STRINGIZE_SOURCE(
                             __kernel void calculateScoresOfPopulation(
@@ -153,10 +84,10 @@ namespace MinusDarwinTest {
             auto ctx = new bc::context(dev);
             auto queue = new bc::command_queue(*ctx,dev);
             auto dSignalData = new bc::vector<float>(
-                            signalData.begin(),signalData.end(),
-                            *queue);
-            auto dScores = new bc::vector<float>(solverParameterSetSinewaveFitting1.popSize,*ctx);
-            auto dPopulation = new bc::vector<bc::float2_>(solverParameterSetSinewaveFitting1.popSize,*ctx);
+                    signalData.begin(),signalData.end(),
+                    *queue);
+            auto dScores = new bc::vector<float>(solverParameterSetSinewaveFittingTuning.popSize,*ctx);
+            auto dPopulation = new bc::vector<bc::float2_>(solverParameterSetSinewaveFittingTuning.popSize,*ctx);
             const float sumOfSquares =
                     bc::accumulate(dSignalData->begin(),dSignalData->end(),0.0f,
                                    accumSquared
@@ -187,12 +118,12 @@ namespace MinusDarwinTest {
                         //Population to Device
                         std::vector<bc::float2_> hPopulation(population.size());
                         std::transform(population.begin(),population.end(),
-                        hPopulation.begin(),[](const MinusDarwin::Agent &a){
+                                       hPopulation.begin(),[](const MinusDarwin::Agent &a){
                                     bc::float2_ b;
                                     b[0] = a.at(0);
                                     b[1] = a.at(1);
                                     return b;
-                        });
+                                });
                         bc::copy(hPopulation.begin(),hPopulation.end(),dPopulation->begin(),*queue);
                         //Once population has been copied to the device
                         //a parallel calculation of scores must be done
@@ -200,13 +131,15 @@ namespace MinusDarwinTest {
                         bc::copy(dScores->begin(),dScores->end(),scores.begin(),*queue);
                     };
             solver = new MinusDarwin::Solver(
-                    solverParameterSetSinewaveFitting1, evaluatePopulationFitError
+                    solverParameterSetSinewaveFittingTuning, evaluatePopulationFitError
             );
         }
         void TearDown() override {
+            csv.close();
             delete solver;
         }
     };
 }
 
-#endif //MINUSDARWIN_SOLVERTEST_HPP
+
+#endif //MINUSDARWIN_SINEWAVEFITTINGTUNINGTEST_HPP

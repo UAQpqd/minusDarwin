@@ -8,23 +8,23 @@
 #include <vector>
 #include <cstddef>
 #include <iostream>
-#include <boost/compute.hpp>
-
-namespace bc = boost::compute;
-
-#define dimShrink(w,r,c) (\
-    (r)*(w)+(c)\
-)
+#include <tuple>
+#include <vector>
+#include <iterator>
+#include <iostream>
+#include <sstream>
+#include <functional>
+#include <utility>
+#include <vector>
+#include <algorithm>
+#include <boost/chrono.hpp>
+#include <boost/random.hpp>
 
 namespace MinusDarwin {
     typedef std::vector<float> Agent;
     typedef std::vector<float> Scores;
-    typedef std::vector<float> Population;
-    typedef std::vector<size_t> Neighbours;
-    typedef bc::vector<float> DAgent;
-    typedef bc::vector<float> DScores;
-    typedef bc::vector<float> DPopulation;
-    typedef bc::vector<size_t> DNeighbours;
+    typedef std::vector<Agent> Population;
+    typedef std::vector<std::vector<size_t> > Neighbours;
     enum class GoalFunction { MaxGenerations, EpsilonReached };
     enum class CrossoverMode { Random, Best };
     struct SolverParameterSet {
@@ -37,6 +37,7 @@ namespace MinusDarwin {
         float epsilon;  //If agent score < epsilon & EpsilonReached is goal
         float coProb;   //Crossover probability
         float diffFactor;     //Diferential factor
+        bool useUniformFactor;  //Uniform randomly distributed factor
     };
 }
 
