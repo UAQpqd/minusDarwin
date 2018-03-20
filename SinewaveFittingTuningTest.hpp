@@ -46,13 +46,13 @@ namespace MinusDarwinTest {
                                     __global const float *signalData,
                             __global const float2 *population,
                             __global float *scores,
-                            const size_t populationSize,
-                            const size_t signalDataSize,
+                            const unsigned int populationSize,
+                            const unsigned int signalDataSize,
                             const float sumOfSquares,
                             const float omegaMin,
                             const float omegaMax,
                             const float phiMax,
-                            const size_t sps,
+                            const unsigned int sps,
                             const float a)
                     {
                             const uint aId = get_global_id(0);
@@ -60,8 +60,8 @@ namespace MinusDarwinTest {
                             float error = 0.0f;
                             for (size_t p = 0; p < signalDataSize; p++) {
                             float t = (float)p/(float)sps;
-                            float realOmega = omegaMin+agent[0]*(omegaMax-omegaMin);
-                            float realPhi = agent[1]*phiMax;
+                            float realOmega = omegaMin+agent.x*(omegaMax-omegaMin);
+                            float realPhi = agent.y*phiMax;
                             float estimated =
                             a*sin(realOmega*t+realPhi);
                             error += (estimated-signalData[p])*(estimated-signalData[p]);
@@ -98,6 +98,8 @@ namespace MinusDarwinTest {
 
             bc::program program =
                     bc::program::create_with_source(sinewaveFitSource, *ctx);
+            // compile the programbc::program program =
+            bc::program::create_with_source(sinewaveFitSource, *ctx);
             // compile the program
             try {
                 program.build();
@@ -108,13 +110,13 @@ namespace MinusDarwinTest {
             kernel.set_arg(0,*dSignalData);
             kernel.set_arg(1,*dPopulation);
             kernel.set_arg(2,*dScores);
-            kernel.set_arg(3,dPopulation->size());
-            kernel.set_arg(4,dSignalData->size());
+            kernel.set_arg(3,(unsigned int)dPopulation->size());
+            kernel.set_arg(4,(unsigned int)dSignalData->size());
             kernel.set_arg(5,sumOfSquares);
             kernel.set_arg(6,omegaMin);
             kernel.set_arg(7,omegaMax);
             kernel.set_arg(8,phiMax);
-            kernel.set_arg(9,sps);
+            kernel.set_arg(9,(unsigned int)sps);
             kernel.set_arg(10,a);
 
             auto evaluatePopulationFitError =
