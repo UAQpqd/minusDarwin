@@ -100,7 +100,7 @@ namespace MinusDarwinTest {
                     bc::program::create_with_source(sinewaveFitSource, *ctx);
             // compile the program
             try {
-            program.build();
+                program.build();
             } catch(bc::opencl_error &e) {
                 std::cout << program.build_log() << std::endl;
             }

@@ -165,7 +165,11 @@ namespace MinusDarwinTest {
             bc::program program =
                     bc::program::create_with_source(sinewaveFitSource, *ctx);
             // compile the program
-            program.build();
+            try {
+                program.build();
+            } catch(bc::opencl_error &e) {
+                std::cout << program.build_log() << std::endl;
+            }
             auto kernel = bc::kernel(program,"calculateScoresOfPopulation");
             kernel.set_arg(0,*dSignalData);
             kernel.set_arg(1,*dPopulation);
