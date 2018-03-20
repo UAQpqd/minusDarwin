@@ -50,7 +50,7 @@ namespace MinusDarwinTest {
 
         void SetUp() override {
 
-            const float time = 10.0f;
+            const float time = 4.0f;
             const size_t sps = 8000;
             const float a = 100.0f;
             const float omega = 2.0f * (float) M_PI * 60.0f;

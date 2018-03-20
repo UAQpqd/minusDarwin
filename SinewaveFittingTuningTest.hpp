@@ -8,6 +8,9 @@
 
 #include <gtest/gtest.h>
 #include <boost/compute.hpp>
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics/mean.hpp>
+#include <boost/accumulators/statistics/variance.hpp>
 #include "Solver.hpp"
 
 namespace bc = boost::compute;

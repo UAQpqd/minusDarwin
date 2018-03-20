@@ -25,11 +25,13 @@ MinusDarwin::Agent MinusDarwin::Solver::run(bool verbose) {
             boost::chrono::high_resolution_clock::now();
     auto duration =
             endTime-startTime;
+    tracer = RunTracer();
     tracer.generationsDuration.push_back(
             boost::chrono::duration_cast<boost::chrono::milliseconds>(duration).count()
     );
     bestAgentId = getBestAgentId(Xscores);
-    bool goalReached = checkEpsilonReached(Xscores,bestAgentId);
+    bool goalReached = sParams.goal == MinusDarwin::GoalFunction::EpsilonReached &&
+                       checkEpsilonReached(Xscores, bestAgentId);
     tracer.generations.push_back(X);
     tracer.generationsScores.push_back(Xscores);
     if (verbose)
@@ -42,7 +44,9 @@ MinusDarwin::Agent MinusDarwin::Solver::run(bool verbose) {
         crossoverPopulation(X, Y, sParams.mode == CrossoverMode::Best ? getBestAgentId(Xscores) : 0);
         evaluatePopulation(Yscores, Y);
         selectionPopulation(X, Xscores, Y, Yscores);
-        goalReached = checkEpsilonReached(Xscores, bestAgentId);
+        goalReached =
+                sParams.goal == MinusDarwin::GoalFunction::EpsilonReached &&
+                        checkEpsilonReached(Xscores, bestAgentId);
         if (verbose)
             showPopulationHead(X, Xscores, 10);
         tracer.generations.push_back(X);
